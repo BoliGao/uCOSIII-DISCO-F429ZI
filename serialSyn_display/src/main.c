@@ -21,8 +21,8 @@
 
 /* Task Priority */
 #define APP_TASK_START_PRIO 1u
-#define UART_RECEIVE_TASK_PRIO 2u
-#define UART_TRANSMIT_TASK_PRIO 3u
+#define UART_RECEIVE_TASK_PRIO 12u
+#define UART_TRANSMIT_TASK_PRIO 22u
 
 /* UART and LCD Display */
 #define FILE_SIZE 1047u     //need to know the file size before transmission  

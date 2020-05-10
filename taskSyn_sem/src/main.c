@@ -20,7 +20,7 @@
 
 #define APP_TASK_START_PRIO 1u
 #define LED3_TASK_PRIO 2u
-#define LED4_TASK_PRIO 3u
+#define LED4_TASK_PRIO 12u
 
 /*
 *********************************************************************************************************

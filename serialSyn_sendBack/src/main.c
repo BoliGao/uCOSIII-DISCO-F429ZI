@@ -16,8 +16,9 @@
 
 #define APP_TASK_START_STK_SIZE 128u
 #define UART_TASK_STK_SIZE 128u
+
 #define APP_TASK_START_PRIO 1u
-#define UART_TRANSMIT_TASK_PRIO 2u
+#define UART_TRANSMIT_TASK_PRIO 12u
 
 #define MAX_SIZE 65535u //Maximum UART transmission size
 

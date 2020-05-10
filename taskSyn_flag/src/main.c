@@ -22,8 +22,8 @@
 
 #define APP_TASK_START_PRIO 1u
 #define LED3_TASK_PRIO 2u
-#define LED4_TASK_PRIO 3u
-#define SEND_STRING_TASK_PRIO 4u
+#define LED4_TASK_PRIO 12u
+#define SEND_STRING_TASK_PRIO 22u
 
 #define SYN_LED3_OK 0X01
 #define SYN_LED4_OK 0X02

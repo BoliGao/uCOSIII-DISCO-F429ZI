@@ -21,8 +21,8 @@
 #define TASK_B_STK_SIZE 128u
 
 #define APP_TASK_START_PRIO 1u
-#define TASK_A_PRIO 2u
-#define TASK_B_PRIO 3u
+#define TASK_A_PRIO 12u
+#define TASK_B_PRIO 22u
 
 /*
 *********************************************************************************************************

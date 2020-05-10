@@ -23,7 +23,7 @@
 /* Task Priority */
 #define APP_TASK_START_PRIO 1u
 #define LED3_TASK_PRIO 2u
-#define LED4_TASK_PRIO 3u
+#define LED4_TASK_PRIO 12u
 
 /*
 *********************************************************************************************************
@@ -142,7 +142,7 @@ static void LED3Task(void *p_arg)
 					  (CPU_INT16U)1u,
 					  (CPU_INT32U)0,
 					  (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
-					  (OS_ERR *)&err);
+					  (OS_ERR *)&err);		
 	}
 }
 
@@ -153,12 +153,13 @@ static void LED4Task(void *p_arg)
 	while (DEF_TRUE)
 	{
 		BSP_LED_Toggle(LED4);
-
+		/*
 		OSTimeDlyHMSM((CPU_INT16U)0,
 					  (CPU_INT16U)0,
-					  (CPU_INT16U)2u,
+					  (CPU_INT16U)1u,
 					  (CPU_INT32U)0,
 					  (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
 					  (OS_ERR *)&err);
+		*/
 	}
 }
