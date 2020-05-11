@@ -10,7 +10,7 @@
 *                                           ARM Cortex-M4 Port
 *
 * File      : OS_CPU.H
-* Version   : V3.05.00
+* Version   : V3.04.05
 * By        : JJL
 *             JBL
 *

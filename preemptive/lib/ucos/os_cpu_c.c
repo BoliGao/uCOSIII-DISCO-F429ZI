@@ -10,18 +10,18 @@
 *                                           ARM Cortex-M4 Port
 *
 * File      : OS_CPU_C.C
-* Version   : V3.05.00
+* Version   : V3.04.05
 * By        : JJL
 *             BAN
 *             JBL
 *
 * LICENSING TERMS:
 * ---------------
-*           uC/OS-III is provided in source form for FREE short-term evaluation, for educational use or
+*           uC/OS-III is provided in source form for FREE short-term evaluation, for educational use or 
 *           for peaceful research.  If you plan or intend to use uC/OS-III in a commercial application/
-*           product then, you need to contact Micrium to properly license uC/OS-III for its use in your
-*           application/product.   We provide ALL the source code for your convenience and to help you
-*           experience uC/OS-III.  The fact that the source is provided does NOT mean that you can use
+*           product then, you need to contact Micrium to properly license uC/OS-III for its use in your 
+*           application/product.   We provide ALL the source code for your convenience and to help you 
+*           experience uC/OS-III.  The fact that the source is provided does NOT mean that you can use 
 *           it commercially without paying a licensing fee.
 *
 *           Knowledge of the source code may NOT be used to develop a similar product.
@@ -97,38 +97,10 @@ void  OSIdleTaskHook (void)
 
 void  OSInitHook (void)
 {
-                                                                    /* 8-byte align the ISR stack.                            */
+                                                                    /* 8-byte align the ISR stack.                            */    
     OS_CPU_ExceptStkBase = (CPU_STK *)(OSCfg_ISRStkBasePtr + OSCfg_ISRStkSize);
     OS_CPU_ExceptStkBase = (CPU_STK *)((CPU_STK)(OS_CPU_ExceptStkBase) & 0xFFFFFFF8);
 }
-
-
-/*
-*********************************************************************************************************
-*                                           REDZONE HIT HOOK
-*
-* Description: This function is called when a task's stack overflowed.
-*
-* Arguments  : p_tcb        Pointer to the task control block of the offending task. NULL if ISR.
-*
-* Note(s)    : None.
-*********************************************************************************************************
-*/
-#if (OS_CFG_TASK_STK_REDZONE_EN == DEF_ENABLED)
-void  OSRedzoneHitHook (OS_TCB  *p_tcb)
-{
-#if OS_CFG_APP_HOOKS_EN > 0u
-    if (OS_AppRedzoneHitHookPtr != (OS_APP_HOOK_TCB)0) {
-        (*OS_AppRedzoneHitHookPtr)(p_tcb);
-    } else {
-        CPU_SW_EXCEPTION(;);
-    }
-#else
-    (void)p_tcb;                                                /* Prevent compiler warning                             */
-    CPU_SW_EXCEPTION(;);
-#endif
-}
-#endif
 
 
 /*
@@ -264,7 +236,7 @@ CPU_STK  *OSTaskStkInit (OS_TASK_PTR    p_task,
 {
     CPU_STK    *p_stk;
 
-
+    
     (void)opt;                                                  /* Prevent compiler warning                               */
 
     p_stk = &p_stk_base[stk_size];                              /* Load stack pointer                                     */
@@ -288,7 +260,7 @@ CPU_STK  *OSTaskStkInit (OS_TASK_PTR    p_task,
     *--p_stk = (CPU_STK)0x06060606u;                            /* R6                                                     */
     *--p_stk = (CPU_STK)0x05050505u;                            /* R5                                                     */
     *--p_stk = (CPU_STK)0x04040404u;                            /* R4                                                     */
-
+    
 #if (OS_CPU_ARM_FP_EN == DEF_ENABLED)
     if ((opt & OS_OPT_TASK_SAVE_FP) != (OS_OPT)0) {
         *--p_stk = (CPU_STK)0x02000000u;                        /* FPSCR                                                  */
@@ -326,7 +298,7 @@ CPU_STK  *OSTaskStkInit (OS_TASK_PTR    p_task,
         *--p_stk = (CPU_STK)0x3F800000u;                        /* S1                                                     */
         *--p_stk = (CPU_STK)0x00000000u;                        /* S0                                                     */
     }
-#endif
+#endif    
 
     return (p_stk);
 }
@@ -356,10 +328,8 @@ void  OSTaskSwHook (void)
 #ifdef  CPU_CFG_INT_DIS_MEAS_EN
     CPU_TS  int_dis_time;
 #endif
-#if (OS_CFG_TASK_STK_REDZONE_EN == DEF_ENABLED)
-    CPU_BOOLEAN  stk_status;
-#endif
 
+    
 #if (OS_CPU_ARM_FP_EN == DEF_ENABLED)
     if ((OSTCBCurPtr->Opt & OS_OPT_TASK_SAVE_FP) != (OS_OPT)0) {
         OS_CPU_FP_Reg_Push(OSTCBCurPtr->StkPtr);
@@ -368,16 +338,16 @@ void  OSTaskSwHook (void)
     if ((OSTCBHighRdyPtr->Opt & OS_OPT_TASK_SAVE_FP) != (OS_OPT)0) {
         OS_CPU_FP_Reg_Pop(OSTCBHighRdyPtr->StkPtr);
     }
-#endif
+#endif    
 
 #if OS_CFG_APP_HOOKS_EN > 0u
     if (OS_AppTaskSwHookPtr != (OS_APP_HOOK_VOID)0) {
         (*OS_AppTaskSwHookPtr)();
     }
 #endif
-
+    
 #if (defined(TRACE_CFG_EN) && (TRACE_CFG_EN > 0u))
-    TRACE_OS_TASK_SWITCHED_IN(OSTCBHighRdyPtr);                 /* Record the event.                                    */
+    TRACE_OS_TASK_SWITCHED_IN(OSTCBHighRdyPtr);             /* Record the event.                                      */
 #endif
 
 #if OS_CFG_TASK_PROFILE_EN > 0u
@@ -391,26 +361,18 @@ void  OSTaskSwHook (void)
 #endif
 
 #ifdef  CPU_CFG_INT_DIS_MEAS_EN
-    int_dis_time = CPU_IntDisMeasMaxCurReset();                 /* Keep track of per-task interrupt disable time        */
+    int_dis_time = CPU_IntDisMeasMaxCurReset();             /* Keep track of per-task interrupt disable time          */
     if (OSTCBCurPtr->IntDisTimeMax < int_dis_time) {
         OSTCBCurPtr->IntDisTimeMax = int_dis_time;
     }
 #endif
 
 #if OS_CFG_SCHED_LOCK_TIME_MEAS_EN > 0u
-                                                                /* Keep track of per-task scheduler lock time           */
+                                                            /* Keep track of per-task scheduler lock time             */
     if (OSTCBCurPtr->SchedLockTimeMax < OSSchedLockTimeMaxCur) {
         OSTCBCurPtr->SchedLockTimeMax = OSSchedLockTimeMaxCur;
     }
-    OSSchedLockTimeMaxCur = (CPU_TS)0;                          /* Reset the per-task value                             */
-#endif
-
-#if (OS_CFG_TASK_STK_REDZONE_EN == DEF_ENABLED)
-                                                                /* Check if stack overflowed.                           */
-    stk_status = OSTaskStkRedzoneChk(DEF_NULL);
-    if (stk_status != DEF_OK) {
-        OSRedzoneHitHook(OSTCBCurPtr);
-    }
+    OSSchedLockTimeMaxCur = (CPU_TS)0;                      /* Reset the per-task value                               */
 #endif
 }
 
