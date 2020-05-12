@@ -116,11 +116,14 @@ static void AppTaskStart(void *p_arg)
 
     SystemClock_Config();
 
+    BSP_LED_Init(LED3);
+    BSP_LED_Init(LED4);
+
     MX_USART1_UART_Init();
     HAL_UART_Receive_IT(&huart1, rxData, FILE_SIZE);
 
-    BSP_LED_Init(LED3);
     LCD_Init();
+    BSP_LCD_DisplayStringAtLine(1, (uint8_t *)"LCD_Init Done");        //Indicate successful init
 
     OSTaskCreate((OS_TCB *)&UartReceiveTaskTCB,
                  (CPU_CHAR *)"Uart Receive Task",
@@ -183,7 +186,7 @@ static void UartReceiveTask(void *p_arg)
                           (CPU_TS *)&ts,
                           (OS_ERR *)&err);
         }
-        BSP_LED_Toggle(LED3);       //Indicate completed display
+        BSP_LED_Toggle(LED4);       //Indicate completed display
         HAL_UART_Receive_IT(&huart1, rxData, FILE_SIZE);        //Activate UART interrupt again
     }
 }
@@ -279,7 +282,10 @@ static void MX_USART1_UART_Init(void)
     huart1.Init.Mode = UART_MODE_TX_RX;
     huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(&huart1);
+    if (HAL_UART_Init(&huart1) == HAL_OK)
+    {
+        BSP_LED_On(LED3);
+    }
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)

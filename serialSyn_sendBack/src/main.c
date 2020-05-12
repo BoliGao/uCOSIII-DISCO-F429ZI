@@ -137,6 +137,7 @@ static void UartTransmitTask(void *p_arg)
 
         HAL_UART_Transmit_IT(&huart1, txData, msg_size); //Transmit back
         HAL_UART_Receive_IT(&huart1, rxData, MAX_SIZE);  //Make ready for next interrupt
+        BSP_LED_Toggle(LED4);
     }
 }
 
@@ -180,7 +181,10 @@ static void MX_USART1_UART_Init(void)
     huart1.Init.Mode = UART_MODE_TX_RX;
     huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(&huart1);
+    if (HAL_UART_Init(&huart1) == HAL_OK)
+    {
+        BSP_LED_On(LED3);
+    }
 }
 
 /** 

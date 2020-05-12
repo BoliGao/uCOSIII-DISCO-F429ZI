@@ -106,9 +106,12 @@ static void AppTaskStart(void *p_arg)
     OS_ERR err;
 
     HAL_Init();
+
     BSP_LED_Init(LED3);
     BSP_LED_Init(LED4);
+
     MX_USART1_UART_Init();
+    HAL_UART_Transmit(&huart1, (uint8_t *)"UART Init Done\r\n", 17, 100);
 
     OSTaskCreate((OS_TCB *)&LED3TaskTCB,
                  (CPU_CHAR *)"LED3 TASK",
@@ -219,7 +222,7 @@ static void SendStringTask(void *p_arg)
                    (CPU_TS *)&ts,
                    (OS_ERR *)&err);
 
-        HAL_UART_Transmit(&huart1, (uint8_t *)txString, strlen(txString), 1);
+        HAL_UART_Transmit(&huart1, (uint8_t *)txString, strlen(txString), 100);
     }
 }
 
