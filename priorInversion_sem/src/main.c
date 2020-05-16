@@ -185,7 +185,7 @@ static void HighPrioTask(void *p_arg)
         OSTimeDlyHMSM((CPU_INT16U)0,
                       (CPU_INT16U)0,
                       (CPU_INT16U)0,
-                      (CPU_INT32U)100u,
+                      (CPU_INT32U)200u,
                       (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
                       (OS_ERR *)&err);
     }
@@ -204,7 +204,7 @@ static void MediumPrioTask(void *p_arg)
         OSTimeDlyHMSM((CPU_INT16U)0,
                       (CPU_INT16U)0,
                       (CPU_INT16U)0,
-                      (CPU_INT32U)100u,
+                      (CPU_INT32U)200u,
                       (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
                       (OS_ERR *)&err);
     }
@@ -245,7 +245,7 @@ static void LowPrioTask(void *p_arg)
         OSTimeDlyHMSM((CPU_INT16U)0,
                       (CPU_INT16U)0,
                       (CPU_INT16U)0,
-                      (CPU_INT32U)100u,
+                      (CPU_INT32U)200u,
                       (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
                       (OS_ERR *)&err);
     }

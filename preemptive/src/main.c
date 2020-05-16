@@ -152,13 +152,13 @@ static void LED4Task(void *p_arg)
 	while (DEF_TRUE)
 	{
 		BSP_LED_Toggle(LED4);
-/*		
+		
 		OSTimeDlyHMSM((CPU_INT16U)0,
 					  (CPU_INT16U)0,
 					  (CPU_INT16U)1u,
 					  (CPU_INT32U)0,
 					  (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
 					  (OS_ERR *)&err);
-*/		
+		
 	}
 }
