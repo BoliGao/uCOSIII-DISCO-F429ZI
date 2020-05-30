@@ -39,6 +39,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stdio.h"
+#include "stdlib.h"
 #include "stm32f429i_discovery.h"
 #include "stm32f429i_discovery_ts.h"
 #include "stm32f429i_discovery_io.h"
@@ -46,29 +47,6 @@
 #include "stm32f429i_discovery_gyroscope.h"
 #include "os.h"
 
-/* Exported types ------------------------------------------------------------*/
-typedef struct
-{
-  void   (*DemoFunc)(void);
-  uint8_t DemoName[50]; 
-  uint32_t DemoIndex;
-}BSP_DemoTypedef;
-
-extern const unsigned char stlogo[];
-/* Exported constants --------------------------------------------------------*/
-/* Exported macro ------------------------------------------------------------*/
-
-#define COUNT_OF_EXAMPLE(x)    (sizeof(x)/sizeof(BSP_DemoTypedef))
-/* Exported functions ------------------------------------------------------- */
-void Joystick_demo (void);
-void Touchscreen_demo (void);
-void LCD_demo (void);
-void MEMS_demo (void);
-void Log_demo(void);
-#ifdef EE_M24LR64
-void EEPROM_demo (void);
-#endif /*EE_M24LR64*/
-void SD_demo (void);
 void Touchscreen_Calibration (void);
 uint16_t Calibration_GetX(uint16_t x);
 uint16_t Calibration_GetY(uint16_t y);

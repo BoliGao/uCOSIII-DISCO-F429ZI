@@ -47,6 +47,8 @@ static TS_StateTypeDef TS_State;
 CPU_INT08U board[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //0 is empty, 1 is bot player, 2 is human player
 CPU_INT08U moves = 0;
 
+OS_MUTEX mutex;
+
 /*
 *********************************************************************************************************
 *                                         FUNCTION PROTOTYPES
@@ -77,6 +79,10 @@ int main(void)
     OS_ERR err;
 
     OSInit(&err);
+
+    OSMutexCreate((OS_MUTEX *)&mutex,
+                  (CPU_CHAR *)"Resource Mutex",
+                  (OS_ERR *)&err);
 
     OSTaskCreate((OS_TCB *)&AppTaskStartTCB,
                  (CPU_CHAR *)"App Task Start",
@@ -116,9 +122,6 @@ static void AppTaskStart(void *p_arg)
     Touchscreen_Calibration();
 
     uint8_t status = 0;
-    uint16_t x, y;
-    uint8_t state = 0;
-
     status = BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
 
     if (status != TS_OK)
@@ -237,12 +240,11 @@ static void BotPlayer(void *p_arg)
                       (CPU_TS *)&ts,
                       (OS_ERR *)&err);
 
-        OSTimeDlyHMSM((CPU_INT16U)0,
-                      (CPU_INT16U)0,
-                      (CPU_INT16U)0,
-                      (CPU_INT32U)100u,
-                      (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
-                      (OS_ERR *)&err);
+        OSMutexPend((OS_MUTEX *)&mutex,
+                    (OS_TICK)0,
+                    (OS_OPT)OS_OPT_PEND_BLOCKING,
+                    (CPU_TS *)&ts,
+                    (OS_ERR *)&err);
 
         BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
 
@@ -287,6 +289,17 @@ static void BotPlayer(void *p_arg)
         board[move] = 1;
 
         moves++;
+
+        OSTimeDlyHMSM((CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT32U)100u,
+                      (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+                      (OS_ERR *)&err);
+
+        OSMutexPost((OS_MUTEX *)&mutex,
+                    (OS_OPT)OS_OPT_POST_NONE,
+                    (OS_ERR *)&err);
     }
 }
 
@@ -294,10 +307,15 @@ static void HumanPlayer(void *p_arg)
 {
     OS_ERR err;
     CPU_TS ts;
-    CPU_INT08U move;
 
     while (DEF_TRUE)
     {
+        OSMutexPend((OS_MUTEX *)&mutex,
+                    (OS_TICK)0,
+                    (OS_OPT)OS_OPT_PEND_BLOCKING,
+                    (CPU_TS *)&ts,
+                    (OS_ERR *)&err);
+
         BSP_TS_GetState(&TS_State);
         BSP_LCD_SetTextColor(LCD_COLOR_RED);
 
@@ -398,14 +416,16 @@ static void HumanPlayer(void *p_arg)
                       (CPU_INT32U)100u,
                       (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
                       (OS_ERR *)&err);
+
+        OSMutexPost((OS_MUTEX *)&mutex,
+                    (OS_OPT)OS_OPT_POST_NONE,
+                    (OS_ERR *)&err);
     }
 }
 
 static void Analysis(void *p_arg)
 {
     OS_ERR err;
-    CPU_TS ts;
-    CPU_INT08U move;
 
     while (DEF_TRUE)
     {
@@ -487,6 +507,7 @@ static void Analysis(void *p_arg)
     }
 }
 
+
 /*
 *********************************************************************************************************
 *                                      NON-TASK FUNCTIONS
@@ -520,7 +541,7 @@ static void PrintResult(uint8_t who)
         BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Human Won!", LEFT_MODE);
         break;
     }
-
+    
     GameOver();
 }
 
