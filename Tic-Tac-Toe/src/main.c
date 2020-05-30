@@ -20,6 +20,7 @@
 #define DRAW_BOARD_PRIO 2u
 #define BOT_PLAYER_PRIO 3u
 #define HUMAN_PLAYER_PRIO 3u
+#define ANALYSIS_PRIO 4u
 
 /*
 *********************************************************************************************************
@@ -32,16 +33,19 @@ static OS_TCB AppTaskStartTCB;
 static OS_TCB DrawBoardTCB;
 static OS_TCB BotPlayerTCB;
 static OS_TCB HumanPlayerTCB;
+static OS_TCB AnalysisTCB;
 
 /* Task Stack */
 static CPU_STK AppTaskStartStk[TASK_STK_SIZE];
 static CPU_STK DrawBoardStk[TASK_STK_SIZE];
 static CPU_STK BotPlayerStk[TASK_STK_SIZE];
 static CPU_STK HumanPlayerStk[TASK_STK_SIZE];
+static CPU_STK AnalysisStk[TASK_STK_SIZE];
 
 static TS_StateTypeDef TS_State;
 
 CPU_INT08U board[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //0 is empty, 1 is bot player, 2 is human player
+CPU_INT08U moves = 0;
 
 /*
 *********************************************************************************************************
@@ -54,6 +58,7 @@ static void AppTaskStart(void *p_arg);
 static void DrawBoard(void *p_arg);
 static void BotPlayer(void *p_arg);
 static void HumanPlayer(void *p_arg);
+static void Analysis(void *p_arg);
 
 /* System Initilization Prototypes */
 void SystemClock_Config(void);
@@ -168,6 +173,20 @@ static void AppTaskStart(void *p_arg)
                      (void *)0,
                      (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                      (OS_ERR *)&err);
+
+        OSTaskCreate((OS_TCB *)&AnalysisTCB,
+                     (CPU_CHAR *)"Analysis Task",
+                     (OS_TASK_PTR)Analysis,
+                     (void *)0,
+                     (OS_PRIO)ANALYSIS_PRIO,
+                     (CPU_STK *)&AnalysisStk[0],
+                     (CPU_STK_SIZE)TASK_STK_SIZE / 10,
+                     (CPU_STK_SIZE)TASK_STK_SIZE,
+                     (OS_MSG_QTY)5u,
+                     (OS_TICK)0u,
+                     (void *)0,
+                     (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+                     (OS_ERR *)&err);
     }
 }
 
@@ -258,9 +277,20 @@ static void BotPlayer(void *p_arg)
         }
         board[move] = 1;
 
-        OSTaskSemPost((OS_TCB *)&HumanPlayerTCB,
-                      (OS_OPT)OS_OPT_POST_NONE,
-                      (OS_ERR *)&err);
+        moves++;
+
+        if (moves > 4)
+        {
+            OSTaskSemPost((OS_TCB *)&AnalysisTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else
+        {
+            OSTaskSemPost((OS_TCB *)&HumanPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
     }
 }
 
@@ -287,6 +317,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(20, 100, 60, 140);
                 BSP_LCD_DrawLine(60, 100, 20, 140);
                 board[0] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -296,6 +327,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(100, 100, 140, 140);
                 BSP_LCD_DrawLine(140, 100, 100, 140);
                 board[1] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -305,6 +337,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(180, 100, 220, 140);
                 BSP_LCD_DrawLine(220, 100, 180, 140);
                 board[2] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -314,6 +347,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(20, 180, 60, 220);
                 BSP_LCD_DrawLine(60, 180, 20, 220);
                 board[3] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -323,6 +357,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(100, 180, 140, 220);
                 BSP_LCD_DrawLine(140, 180, 100, 220);
                 board[4] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -332,6 +367,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(180, 180, 220, 220);
                 BSP_LCD_DrawLine(220, 180, 180, 220);
                 board[5] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -341,6 +377,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(20, 260, 60, 300);
                 BSP_LCD_DrawLine(60, 260, 20, 300);
                 board[6] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -350,6 +387,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(100, 260, 140, 300);
                 BSP_LCD_DrawLine(140, 260, 100, 300);
                 board[7] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -359,6 +397,7 @@ static void HumanPlayer(void *p_arg)
                 BSP_LCD_DrawLine(180, 260, 220, 300);
                 BSP_LCD_DrawLine(220, 260, 180, 300);
                 board[8] = 2;
+                moves++;
                 OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
                               (OS_OPT)OS_OPT_POST_NONE,
                               (OS_ERR *)&err);
@@ -370,6 +409,92 @@ static void HumanPlayer(void *p_arg)
                           (CPU_INT32U)100u,
                           (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
                           (OS_ERR *)&err);
+        }
+    }
+}
+
+static void Analysis(void *p_arg)
+{
+    OS_ERR err;
+    CPU_TS ts;
+    CPU_INT08U move;
+
+    while (DEF_TRUE)
+    {
+        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
+                      (OS_OPT)OS_OPT_PEND_BLOCKING,
+                      (CPU_TS *)&ts,
+                      (OS_ERR *)&err);
+
+        if (board[0] == 1 && board[1] == 1 && board[2] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[3] == 1 && board[4] == 1 && board[5] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[6] == 1 && board[7] == 1 && board[8] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[0] == 1 && board[3] == 1 && board[6] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[1] == 1 && board[4] == 1 && board[7] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[2] == 1 && board[5] == 1 && board[8] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[0] == 1 && board[4] == 1 && board[8] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        else if (board[2] == 1 && board[4] == 1 && board[6] == 1)
+        {
+            BSP_LED_On(LED3);
+        }
+        // crosses win?
+        else if (board[0] == 2 && board[1] == 2 && board[2] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[3] == 2 && board[4] == 2 && board[5] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[6] == 2 && board[7] == 2 && board[8] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[0] == 2 && board[3] == 2 && board[6] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[1] == 2 && board[4] == 2 && board[7] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[2] == 2 && board[5] == 2 && board[8] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[0] == 2 && board[4] == 2 && board[8] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (board[2] == 2 && board[4] == 2 && board[6] == 2)
+        {
+            BSP_LED_On(LED4);
+        }
+        else if (moves == 9)
+        {
+            BSP_LED_On(LED3);
+            BSP_LED_On(LED4);
         }
     }
 }
