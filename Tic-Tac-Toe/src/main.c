@@ -61,8 +61,10 @@ static void HumanPlayer(void *p_arg);
 static void Analysis(void *p_arg);
 
 /* System Initilization Prototypes */
-void SystemClock_Config(void);
-void LCD_Init(void);
+static void SystemClock_Config(void);
+static void LCD_Init(void);
+static void PrintResult(uint8_t who);
+static void GameOver(void);
 
 /*
 *********************************************************************************************************
@@ -235,6 +237,13 @@ static void BotPlayer(void *p_arg)
                       (CPU_TS *)&ts,
                       (OS_ERR *)&err);
 
+        OSTimeDlyHMSM((CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT32U)100u,
+                      (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+                      (OS_ERR *)&err);
+
         BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
 
         srand(OSTickCtr);
@@ -278,19 +287,6 @@ static void BotPlayer(void *p_arg)
         board[move] = 1;
 
         moves++;
-
-        if (moves > 4)
-        {
-            OSTaskSemPost((OS_TCB *)&AnalysisTCB,
-                          (OS_OPT)OS_OPT_POST_NONE,
-                          (OS_ERR *)&err);
-        }
-        else
-        {
-            OSTaskSemPost((OS_TCB *)&HumanPlayerTCB,
-                          (OS_OPT)OS_OPT_POST_NONE,
-                          (OS_ERR *)&err);
-        }
     }
 }
 
@@ -302,114 +298,106 @@ static void HumanPlayer(void *p_arg)
 
     while (DEF_TRUE)
     {
-        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
-                      (OS_OPT)OS_OPT_PEND_BLOCKING,
-                      (CPU_TS *)&ts,
-                      (OS_ERR *)&err);
+        BSP_TS_GetState(&TS_State);
+        BSP_LCD_SetTextColor(LCD_COLOR_RED);
 
-        while (DEF_TRUE)
+        if (board[0] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y < 160)
         {
-            BSP_TS_GetState(&TS_State);
-            BSP_LCD_SetTextColor(LCD_COLOR_RED);
-
-            if (board[0] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y < 160)
-            {
-                BSP_LCD_DrawLine(20, 100, 60, 140);
-                BSP_LCD_DrawLine(60, 100, 20, 140);
-                board[0] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[1] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 80 && TS_State.Y < 160)
-            {
-                BSP_LCD_DrawLine(100, 100, 140, 140);
-                BSP_LCD_DrawLine(140, 100, 100, 140);
-                board[1] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[2] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 80 && TS_State.Y < 160)
-            {
-                BSP_LCD_DrawLine(180, 100, 220, 140);
-                BSP_LCD_DrawLine(220, 100, 180, 140);
-                board[2] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[3] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 160 && TS_State.Y < 240)
-            {
-                BSP_LCD_DrawLine(20, 180, 60, 220);
-                BSP_LCD_DrawLine(60, 180, 20, 220);
-                board[3] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[4] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 160 && TS_State.Y < 240)
-            {
-                BSP_LCD_DrawLine(100, 180, 140, 220);
-                BSP_LCD_DrawLine(140, 180, 100, 220);
-                board[4] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[5] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 160 && TS_State.Y < 240)
-            {
-                BSP_LCD_DrawLine(180, 180, 220, 220);
-                BSP_LCD_DrawLine(220, 180, 180, 220);
-                board[5] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[6] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y > 240 && TS_State.Y < 320)
-            {
-                BSP_LCD_DrawLine(20, 260, 60, 300);
-                BSP_LCD_DrawLine(60, 260, 20, 300);
-                board[6] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[7] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 240 && TS_State.Y < 320)
-            {
-                BSP_LCD_DrawLine(100, 260, 140, 300);
-                BSP_LCD_DrawLine(140, 260, 100, 300);
-                board[7] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-            else if (board[8] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 240 && TS_State.Y < 320)
-            {
-                BSP_LCD_DrawLine(180, 260, 220, 300);
-                BSP_LCD_DrawLine(220, 260, 180, 300);
-                board[8] = 2;
-                moves++;
-                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
-                              (OS_OPT)OS_OPT_POST_NONE,
-                              (OS_ERR *)&err);
-            }
-
-            OSTimeDlyHMSM((CPU_INT16U)0,
-                          (CPU_INT16U)0,
-                          (CPU_INT16U)0,
-                          (CPU_INT32U)100u,
-                          (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+            BSP_LCD_DrawLine(20, 100, 60, 140);
+            BSP_LCD_DrawLine(60, 100, 20, 140);
+            board[0] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
                           (OS_ERR *)&err);
         }
+        else if (board[1] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 80 && TS_State.Y < 160)
+        {
+            BSP_LCD_DrawLine(100, 100, 140, 140);
+            BSP_LCD_DrawLine(140, 100, 100, 140);
+            board[1] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[2] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 80 && TS_State.Y < 160)
+        {
+            BSP_LCD_DrawLine(180, 100, 220, 140);
+            BSP_LCD_DrawLine(220, 100, 180, 140);
+            board[2] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[3] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 160 && TS_State.Y < 240)
+        {
+            BSP_LCD_DrawLine(20, 180, 60, 220);
+            BSP_LCD_DrawLine(60, 180, 20, 220);
+            board[3] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[4] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 160 && TS_State.Y < 240)
+        {
+            BSP_LCD_DrawLine(100, 180, 140, 220);
+            BSP_LCD_DrawLine(140, 180, 100, 220);
+            board[4] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[5] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 160 && TS_State.Y < 240)
+        {
+            BSP_LCD_DrawLine(180, 180, 220, 220);
+            BSP_LCD_DrawLine(220, 180, 180, 220);
+            board[5] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[6] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y > 240 && TS_State.Y < 320)
+        {
+            BSP_LCD_DrawLine(20, 260, 60, 300);
+            BSP_LCD_DrawLine(60, 260, 20, 300);
+            board[6] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[7] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 240 && TS_State.Y < 320)
+        {
+            BSP_LCD_DrawLine(100, 260, 140, 300);
+            BSP_LCD_DrawLine(140, 260, 100, 300);
+            board[7] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+        else if (board[8] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 240 && TS_State.Y < 320)
+        {
+            BSP_LCD_DrawLine(180, 260, 220, 300);
+            BSP_LCD_DrawLine(220, 260, 180, 300);
+            board[8] = 2;
+            moves++;
+            OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                          (OS_OPT)OS_OPT_POST_NONE,
+                          (OS_ERR *)&err);
+        }
+
+        OSTimeDlyHMSM((CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT32U)100u,
+                      (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+                      (OS_ERR *)&err);
     }
 }
 
@@ -421,81 +409,81 @@ static void Analysis(void *p_arg)
 
     while (DEF_TRUE)
     {
-        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
-                      (OS_OPT)OS_OPT_PEND_BLOCKING,
-                      (CPU_TS *)&ts,
-                      (OS_ERR *)&err);
-
         if (board[0] == 1 && board[1] == 1 && board[2] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[3] == 1 && board[4] == 1 && board[5] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[6] == 1 && board[7] == 1 && board[8] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[0] == 1 && board[3] == 1 && board[6] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[1] == 1 && board[4] == 1 && board[7] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[2] == 1 && board[5] == 1 && board[8] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[0] == 1 && board[4] == 1 && board[8] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
         else if (board[2] == 1 && board[4] == 1 && board[6] == 1)
         {
-            BSP_LED_On(LED3);
+            PrintResult(1);
         }
-        // crosses win?
         else if (board[0] == 2 && board[1] == 2 && board[2] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[3] == 2 && board[4] == 2 && board[5] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[6] == 2 && board[7] == 2 && board[8] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[0] == 2 && board[3] == 2 && board[6] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[1] == 2 && board[4] == 2 && board[7] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[2] == 2 && board[5] == 2 && board[8] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[0] == 2 && board[4] == 2 && board[8] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (board[2] == 2 && board[4] == 2 && board[6] == 2)
         {
-            BSP_LED_On(LED4);
+            PrintResult(2);
         }
         else if (moves == 9)
         {
-            BSP_LED_On(LED3);
-            BSP_LED_On(LED4);
+            PrintResult(0);
         }
+
+        OSTimeDlyHMSM((CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT16U)0,
+                      (CPU_INT32U)100u,
+                      (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+                      (OS_ERR *)&err);
     }
 }
 
@@ -513,13 +501,50 @@ void HAL_Delay(uint32_t Delay)
               (OS_ERR *)&err);
 }
 
+static void PrintResult(uint8_t who)
+{
+    BSP_LCD_SetTextColor(LCD_COLOR_CYAN);
+    BSP_LCD_SetFont(&Font24);
+
+    switch (who)
+    {
+    case 0:
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Tie!", LEFT_MODE);
+        break;
+
+    case 1:
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Bot Won!", LEFT_MODE);
+        break;
+
+    case 2:
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Human Won!", LEFT_MODE);
+        break;
+    }
+
+    GameOver();
+}
+
+static void GameOver(void)
+{
+    OS_ERR err;
+
+    OSTaskSuspend((OS_TCB *)&BotPlayerTCB,
+                  (OS_ERR *)&err);
+
+    OSTaskSuspend((OS_TCB *)&HumanPlayerTCB,
+                  (OS_ERR *)&err);
+
+    OSTaskSuspend((OS_TCB *)&AnalysisTCB,
+                  (OS_ERR *)&err);
+}
+
 /*
 *********************************************************************************************************
 *                                      System Initializations
 *********************************************************************************************************
 */
 
-void LCD_Init(void)
+static void LCD_Init(void)
 {
     BSP_LCD_Init();
     BSP_LCD_LayerDefaultInit(LCD_BACKGROUND_LAYER, LCD_FRAME_BUFFER);
@@ -530,7 +555,7 @@ void LCD_Init(void)
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 }
 
-void SystemClock_Config(void)
+static void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
