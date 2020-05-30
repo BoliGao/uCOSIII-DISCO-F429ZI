@@ -13,16 +13,13 @@
 */
 
 /* Task Stack Size */
-#define APP_TASK_START_STK_SIZE 256u
+#define TASK_STK_SIZE 256u
 
 /* Task Priority */
 #define APP_TASK_START_PRIO 1u
-
-#define  CIRCLE_RADIUS        30
-
-/* Private macro -------------------------------------------------------------*/
-#define  CIRCLE_XPOS(i)       ((i * BSP_LCD_GetXSize()) / 5)
-#define  CIRCLE_YPOS(i)       (BSP_LCD_GetYSize() - CIRCLE_RADIUS - 60)
+#define DRAW_BOARD_PRIO 2u
+#define BOT_PLAYER_PRIO 3u
+#define HUMAN_PLAYER_PRIO 3u
 
 /*
 *********************************************************************************************************
@@ -32,9 +29,19 @@
 
 /* Task Control Block */
 static OS_TCB AppTaskStartTCB;
+static OS_TCB DrawBoardTCB;
+static OS_TCB BotPlayerTCB;
+static OS_TCB HumanPlayerTCB;
 
 /* Task Stack */
-static CPU_STK AppTaskStartStk[APP_TASK_START_STK_SIZE];
+static CPU_STK AppTaskStartStk[TASK_STK_SIZE];
+static CPU_STK DrawBoardStk[TASK_STK_SIZE];
+static CPU_STK BotPlayerStk[TASK_STK_SIZE];
+static CPU_STK HumanPlayerStk[TASK_STK_SIZE];
+
+static TS_StateTypeDef TS_State;
+
+CPU_INT08U board[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //0 is empty, 1 is bot player, 2 is human player
 
 /*
 *********************************************************************************************************
@@ -44,6 +51,9 @@ static CPU_STK AppTaskStartStk[APP_TASK_START_STK_SIZE];
 
 /* Task Prototypes */
 static void AppTaskStart(void *p_arg);
+static void DrawBoard(void *p_arg);
+static void BotPlayer(void *p_arg);
+static void HumanPlayer(void *p_arg);
 
 /* System Initilization Prototypes */
 void SystemClock_Config(void);
@@ -67,8 +77,8 @@ int main(void)
                  (void *)0,
                  (OS_PRIO)APP_TASK_START_PRIO,
                  (CPU_STK *)&AppTaskStartStk[0],
-                 (CPU_STK_SIZE)APP_TASK_START_STK_SIZE / 10,
-                 (CPU_STK_SIZE)APP_TASK_START_STK_SIZE,
+                 (CPU_STK_SIZE)TASK_STK_SIZE / 10,
+                 (CPU_STK_SIZE)TASK_STK_SIZE,
                  (OS_MSG_QTY)5u,
                  (OS_TICK)0u,
                  (void *)0,
@@ -113,36 +123,52 @@ static void AppTaskStart(void *p_arg)
     }
     else
     {
-        BSP_LCD_Clear(LCD_COLOR_BLACK);
-        BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 240, 240);
-        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 160, 240);
-        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 80, 240);
-        BSP_LCD_DrawVLine(BSP_LCD_GetXSize() - 160, 80, 240);
-        BSP_LCD_DrawVLine(BSP_LCD_GetXSize() - 80, 80, 240);
-        BSP_LCD_SetTextColor(LCD_COLOR_RED);
-        BSP_LCD_DrawLine(20, 100, 60, 140);
-        BSP_LCD_DrawLine(60, 100, 20, 140);
-        BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-        BSP_LCD_DrawCircle(120, 120, 20);
-    }
-    
+        OSTaskCreate((OS_TCB *)&DrawBoardTCB,
+                     (CPU_CHAR *)"Draw Board Task",
+                     (OS_TASK_PTR)DrawBoard,
+                     (void *)0,
+                     (OS_PRIO)DRAW_BOARD_PRIO,
+                     (CPU_STK *)&DrawBoardStk[0],
+                     (CPU_STK_SIZE)TASK_STK_SIZE / 10,
+                     (CPU_STK_SIZE)TASK_STK_SIZE,
+                     (OS_MSG_QTY)5u,
+                     (OS_TICK)0u,
+                     (void *)0,
+                     (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+                     (OS_ERR *)&err);
 
-    /*
-    OSTaskCreate((OS_TCB *)&UartReceiveTaskTCB,
-                 (CPU_CHAR *)"Uart Receive Task",
-                 (OS_TASK_PTR)UartReceiveTask,
-                 (void *)0,
-                 (OS_PRIO)UART_RECEIVE_TASK_PRIO,
-                 (CPU_STK *)&UartReceiveTaskStk[0],
-                 (CPU_STK_SIZE)UART_TASK_STK_SIZE / 10,
-                 (CPU_STK_SIZE)UART_TASK_STK_SIZE,
-                 (OS_MSG_QTY)5u,
-                 (OS_TICK)0u,
-                 (void *)0,
-                 (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-                 (OS_ERR *)&err);
-*/
+        OSTaskSemPost((OS_TCB *)&DrawBoardTCB, //Notify receive task to send next message
+                      (OS_OPT)OS_OPT_POST_NONE,
+                      (OS_ERR *)&err);
+
+        OSTaskCreate((OS_TCB *)&BotPlayerTCB,
+                     (CPU_CHAR *)"Bot Player Task",
+                     (OS_TASK_PTR)BotPlayer,
+                     (void *)0,
+                     (OS_PRIO)BOT_PLAYER_PRIO,
+                     (CPU_STK *)&BotPlayerStk[0],
+                     (CPU_STK_SIZE)TASK_STK_SIZE / 10,
+                     (CPU_STK_SIZE)TASK_STK_SIZE,
+                     (OS_MSG_QTY)5u,
+                     (OS_TICK)0u,
+                     (void *)0,
+                     (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+                     (OS_ERR *)&err);
+
+        OSTaskCreate((OS_TCB *)&HumanPlayerTCB,
+                     (CPU_CHAR *)"Human Player Task",
+                     (OS_TASK_PTR)HumanPlayer,
+                     (void *)0,
+                     (OS_PRIO)HUMAN_PLAYER_PRIO,
+                     (CPU_STK *)&HumanPlayerStk[0],
+                     (CPU_STK_SIZE)TASK_STK_SIZE / 10,
+                     (CPU_STK_SIZE)TASK_STK_SIZE,
+                     (OS_MSG_QTY)5u,
+                     (OS_TICK)0u,
+                     (void *)0,
+                     (OS_OPT)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+                     (OS_ERR *)&err);
+    }
 }
 
 /*
@@ -150,6 +176,203 @@ static void AppTaskStart(void *p_arg)
 *                                                  TASKS
 *********************************************************************************************************
 */
+
+static void DrawBoard(void *p_arg)
+{
+    OS_ERR err;
+    CPU_TS ts;
+
+    while (DEF_TRUE)
+    {
+        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
+                      (OS_OPT)OS_OPT_PEND_BLOCKING,
+                      (CPU_TS *)&ts,
+                      (OS_ERR *)&err);
+
+        BSP_LCD_Clear(LCD_COLOR_BLACK);
+        BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 240, 240);
+        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 160, 240);
+        BSP_LCD_DrawHLine(0, BSP_LCD_GetYSize() - 80, 240);
+        BSP_LCD_DrawVLine(BSP_LCD_GetXSize() - 160, 80, 240);
+        BSP_LCD_DrawVLine(BSP_LCD_GetXSize() - 80, 80, 240);
+
+        OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                      (OS_OPT)OS_OPT_POST_NONE,
+                      (OS_ERR *)&err);
+    }
+}
+
+static void BotPlayer(void *p_arg)
+{
+    OS_ERR err;
+    CPU_TS ts;
+    CPU_INT08U move;
+
+    while (DEF_TRUE)
+    {
+        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
+                      (OS_OPT)OS_OPT_PEND_BLOCKING,
+                      (CPU_TS *)&ts,
+                      (OS_ERR *)&err);
+
+        BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+
+        srand(OSTickCtr);
+        move = rand() % 9;
+
+        while (board[move] > 0)
+        {
+            move = rand() % 9;
+        }
+
+        switch (move)
+        {
+        case 0:
+            BSP_LCD_DrawCircle(40, 120, 20);
+            break;
+        case 1:
+            BSP_LCD_DrawCircle(120, 120, 20);
+            break;
+        case 2:
+            BSP_LCD_DrawCircle(200, 120, 20);
+            break;
+        case 3:
+            BSP_LCD_DrawCircle(40, 200, 20);
+            break;
+        case 4:
+            BSP_LCD_DrawCircle(120, 200, 20);
+            break;
+        case 5:
+            BSP_LCD_DrawCircle(200, 200, 20);
+            break;
+        case 6:
+            BSP_LCD_DrawCircle(40, 280, 20);
+            break;
+        case 7:
+            BSP_LCD_DrawCircle(120, 280, 20);
+            break;
+        case 8:
+            BSP_LCD_DrawCircle(200, 280, 20);
+            break;
+        }
+        board[move] = 1;
+
+        OSTaskSemPost((OS_TCB *)&HumanPlayerTCB,
+                      (OS_OPT)OS_OPT_POST_NONE,
+                      (OS_ERR *)&err);
+    }
+}
+
+static void HumanPlayer(void *p_arg)
+{
+    OS_ERR err;
+    CPU_TS ts;
+    CPU_INT08U move;
+
+    while (DEF_TRUE)
+    {
+        OSTaskSemPend((OS_TICK)0, //Wait for a notification to send next message
+                      (OS_OPT)OS_OPT_PEND_BLOCKING,
+                      (CPU_TS *)&ts,
+                      (OS_ERR *)&err);
+
+        while (DEF_TRUE)
+        {
+            BSP_TS_GetState(&TS_State);
+            BSP_LCD_SetTextColor(LCD_COLOR_RED);
+
+            if (board[0] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y < 160)
+            {
+                BSP_LCD_DrawLine(20, 100, 60, 140);
+                BSP_LCD_DrawLine(60, 100, 20, 140);
+                board[0] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[1] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 80 && TS_State.Y < 160)
+            {
+                BSP_LCD_DrawLine(100, 100, 140, 140);
+                BSP_LCD_DrawLine(140, 100, 100, 140);
+                board[1] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[2] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 80 && TS_State.Y < 160)
+            {
+                BSP_LCD_DrawLine(180, 100, 220, 140);
+                BSP_LCD_DrawLine(220, 100, 180, 140);
+                board[2] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[3] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 160 && TS_State.Y < 240)
+            {
+                BSP_LCD_DrawLine(20, 180, 60, 220);
+                BSP_LCD_DrawLine(60, 180, 20, 220);
+                board[3] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[4] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 160 && TS_State.Y < 240)
+            {
+                BSP_LCD_DrawLine(100, 180, 140, 220);
+                BSP_LCD_DrawLine(140, 180, 100, 220);
+                board[4] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[5] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 160 && TS_State.Y < 240)
+            {
+                BSP_LCD_DrawLine(180, 180, 220, 220);
+                BSP_LCD_DrawLine(220, 180, 180, 220);
+                board[5] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[6] == 0 && TS_State.TouchDetected && TS_State.X < 80 && TS_State.Y > 80 && TS_State.Y > 240 && TS_State.Y < 320)
+            {
+                BSP_LCD_DrawLine(20, 260, 60, 300);
+                BSP_LCD_DrawLine(60, 260, 20, 300);
+                board[6] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[7] == 0 && TS_State.TouchDetected && TS_State.X > 80 && TS_State.X < 160 && TS_State.Y > 240 && TS_State.Y < 320)
+            {
+                BSP_LCD_DrawLine(100, 260, 140, 300);
+                BSP_LCD_DrawLine(140, 260, 100, 300);
+                board[7] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+            else if (board[8] == 0 && TS_State.TouchDetected && TS_State.X > 160 && TS_State.X < 240 && TS_State.Y > 240 && TS_State.Y < 320)
+            {
+                BSP_LCD_DrawLine(180, 260, 220, 300);
+                BSP_LCD_DrawLine(220, 260, 180, 300);
+                board[8] = 2;
+                OSTaskSemPost((OS_TCB *)&BotPlayerTCB,
+                              (OS_OPT)OS_OPT_POST_NONE,
+                              (OS_ERR *)&err);
+            }
+
+            OSTimeDlyHMSM((CPU_INT16U)0,
+                          (CPU_INT16U)0,
+                          (CPU_INT16U)0,
+                          (CPU_INT32U)100u,
+                          (OS_OPT)OS_OPT_TIME_HMSM_STRICT,
+                          (OS_ERR *)&err);
+        }
+    }
+}
 
 /*
 *********************************************************************************************************
