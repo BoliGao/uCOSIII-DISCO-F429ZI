@@ -119,7 +119,6 @@ static void AppTaskStart(void *p_arg)
     BSP_LED_Init(LED4);
 
     LCD_Init();
-    Touchscreen_Calibration();
 
     uint8_t status = 0;
     status = BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
@@ -507,7 +506,6 @@ static void Analysis(void *p_arg)
     }
 }
 
-
 /*
 *********************************************************************************************************
 *                                      NON-TASK FUNCTIONS
@@ -524,24 +522,24 @@ void HAL_Delay(uint32_t Delay)
 
 static void PrintResult(uint8_t who)
 {
-    BSP_LCD_SetTextColor(LCD_COLOR_CYAN);
+    BSP_LCD_SetTextColor(LCD_COLOR_RED);
     BSP_LCD_SetFont(&Font24);
 
     switch (who)
     {
     case 0:
-        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Tie!", LEFT_MODE);
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Tie!", CENTER_MODE);
         break;
 
     case 1:
-        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Bot Won!", LEFT_MODE);
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Bot Won!", CENTER_MODE);
         break;
 
     case 2:
-        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Human Won!", LEFT_MODE);
+        BSP_LCD_DisplayStringAt(0, BSP_LCD_GetYSize() - 280, (uint8_t *)"Human Won!", CENTER_MODE);
         break;
     }
-    
+
     GameOver();
 }
 
@@ -549,14 +547,17 @@ static void GameOver(void)
 {
     OS_ERR err;
 
-    OSTaskSuspend((OS_TCB *)&BotPlayerTCB,
-                  (OS_ERR *)&err);
+    OSTaskDel((OS_TCB *)&DrawBoardTCB,
+              (OS_ERR *)&err);
 
-    OSTaskSuspend((OS_TCB *)&HumanPlayerTCB,
-                  (OS_ERR *)&err);
+    OSTaskDel((OS_TCB *)&BotPlayerTCB,
+              (OS_ERR *)&err);
 
-    OSTaskSuspend((OS_TCB *)&AnalysisTCB,
-                  (OS_ERR *)&err);
+    OSTaskDel((OS_TCB *)&HumanPlayerTCB,
+              (OS_ERR *)&err);
+
+    OSTaskDel((OS_TCB *)&AnalysisTCB,
+              (OS_ERR *)&err);
 }
 
 /*
